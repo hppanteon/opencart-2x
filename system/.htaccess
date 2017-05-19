@@ -1,0 +1,8 @@
+
+<Files *.*>
+Order Deny,Allow
+Deny from all
+</Files> 
+<Files "duellcron.php">
+    Allow from all
+</Files>
