@@ -16,6 +16,10 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
     if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
       $this->model_setting_setting->editSetting('duell_integration', $this->request->post);
 
+      if (isset($_COOKIE['duell_integration'])) {
+        unset($_COOKIE['duell_integration']);
+      }
+
       $this->session->data['success'] = $this->language->get('text_success');
 
       $this->cache->delete('duell_integration');
