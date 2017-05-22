@@ -16,13 +16,11 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
     if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
       $this->model_setting_setting->editSetting('duell_integration', $this->request->post);
 
-      if (isset($_COOKIE['duell_integration'])) {
-        unset($_COOKIE['duell_integration']);
-      }
-
       $this->session->data['success'] = $this->language->get('text_success');
 
       $this->cache->delete('duell_integration');
+
+      setcookie('duell_integration', '', time() - (86400 * 30), "/");
 
       $this->response->redirect($this->url->link('extension/extension', 'token=' . $this->session->data['token'] . '&type=module', true));
     }
