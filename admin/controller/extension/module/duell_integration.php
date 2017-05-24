@@ -16,6 +16,8 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
     if (($this->request->server['REQUEST_METHOD'] == 'POST') && $this->validate()) {
       $this->model_setting_setting->editSetting('duell_integration', $this->request->post);
 
+
+
       $this->session->data['success'] = $this->language->get('text_success');
 
       $this->cache->delete('duell_integration');
@@ -180,7 +182,7 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
     $this->load->library('duell/duell');
 
 
-    $result = $this->duell->callDuellStockSync();
+    $result = $this->duell->callDuellStockSync('manual');
 
 
     if ($result['status'] == true) {

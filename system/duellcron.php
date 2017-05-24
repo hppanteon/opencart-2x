@@ -19,7 +19,11 @@ $registry = new Registry();
 $config = new Config();
 $config->load('default');
 $config->load($application_config);
+
 $registry->set('config', $config);
+
+
+
 
 // Event
 $event = new Event($registry);
@@ -47,6 +51,32 @@ $registry->set('response', $response);
 // Database
 if ($config->get('db_autostart')) {
   $registry->set('db', new DB($config->get('db_type'), $config->get('db_hostname'), $config->get('db_username'), $config->get('db_password'), $config->get('db_database'), $config->get('db_port')));
+}
+
+$db = $registry->get('db');
+
+// Store
+if (isset($_SERVER['HTTPS']) && (($_SERVER['HTTPS'] == 'on') || ($_SERVER['HTTPS'] == '1'))) {
+  $store_query = $db->query("SELECT * FROM " . DB_PREFIX . "store WHERE REPLACE(`ssl`, 'www.', '') = '" . $db->escape('https://' . str_replace('www.', '', $_SERVER['HTTP_HOST']) . rtrim(dirname($_SERVER['PHP_SELF']), '/.\\') . '/') . "'");
+} else {
+  $store_query = $db->query("SELECT * FROM " . DB_PREFIX . "store WHERE REPLACE(`url`, 'www.', '') = '" . $db->escape('http://' . str_replace('www.', '', $_SERVER['HTTP_HOST']) . rtrim(dirname($_SERVER['PHP_SELF']), '/.\\') . '/') . "'");
+}
+
+if ($store_query->num_rows) {
+  $config->set('config_store_id', $store_query->row['store_id']);
+} else {
+  $config->set('config_store_id', 0);
+}
+
+// Settings
+$query = $db->query("SELECT * FROM " . DB_PREFIX . "setting WHERE store_id = '0' OR store_id = '" . (int) $config->get('config_store_id') . "' ORDER BY store_id ASC");
+
+foreach ($query->rows as $setting) {
+  if (!$setting['serialized']) {
+    $config->set($setting['key'], $setting['value']);
+  } else {
+    $config->set($setting['key'], json_decode($setting['value'], true));
+  }
 }
 
 // Session
@@ -115,5 +145,5 @@ if ($config->has('action_pre_action')) {
 
 require_once( 'library/duell/duell.php');
 $obj_duell = new duell\Duell($registry);
-$obj_duell->callDuellStockSync();
+$obj_duell->callDuellStockSync('auto');
 ?>

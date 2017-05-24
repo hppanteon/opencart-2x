@@ -14,6 +14,7 @@ class Duell {
   private $limit = 20;
   private $totalLoginAttempt = 3;
   private $cnt = 0;
+  private $_duellLang = array();
 
   public function __construct($registry) {
     $this->registry = $registry;
@@ -21,10 +22,16 @@ class Duell {
     $this->lastmsg = '';
     $this->logging = 1;
 
+
+
     if ($this->logging == 1) {
       $this->setLogger();
     }
     $this->settings = $this->getSetting($this->keyName);
+
+    require_once 'duell_mail_lang.php';
+
+    $this->_duellLang = $duellLang;
   }
 
   public function __get($name) {
@@ -58,7 +65,7 @@ class Duell {
   }
 
   public function updateDuellItemByItemId($product_id, $qty = 0) {
-    $this->log('updateDuellItemByItemId() - Product Id: ' . $product_id . ' Qty: ' . $qty);
+    $this->log('updateDuellItemByItemId() - New Stock Product Id: ' . $product_id . ' Qty: ' . $qty);
 
     $this->db->query("UPDATE `" . DB_PREFIX . "product` SET `quantity` = '" . $qty . "' WHERE `product_id` = '" . $this->db->escape($product_id) . "'");
   }
@@ -67,6 +74,8 @@ class Duell {
     try {
       if (!empty($allData)) {
         foreach ($allData as $val) {
+
+          $this->log('processStockUpdation() - API data: ' . json_encode($val));
 
           $productNumber = isset($val['productNumber']) ? $val['productNumber'] : '';
           $stock = isset($val['stock']) ? $val['stock'] : 0;
@@ -87,7 +96,9 @@ class Duell {
     }
   }
 
-  public function callDuellStockSync() {
+  public function callDuellStockSync($type = "manual") {
+
+    $type = strtolower($type);
 
     $response = array();
 
@@ -99,20 +110,50 @@ class Duell {
       if (isset($this->settings['duell_integration_status']) && $this->settings['duell_integration_status'] == 1) {
 
         if (!isset($this->settings['duell_integration_client_number']) || (int) $this->settings['duell_integration_client_number'] <= 0) {
-          $this->log('callDuellStockSync() - Duell client number is not set');
-          $response['message'] = 'Duell client number is not set';
+          $text_error = $this->_duellLang['duell_client_number_not_set'];
+
+          $this->log('callDuellStockSync() - ' . $text_error);
+          $response['message'] = $text_error;
+
+          $error_message = 'callDuellStockSync() - ' . $text_error;
+
+          if ($type != 'manual') {
+            //$this->duellMailAlert($text_error, 422);
+          }
           return $response;
         }
 
         if (!isset($this->settings['duell_integration_client_token']) || strlen($this->settings['duell_integration_client_token']) <= 0) {
-          $this->log('callDuellStockSync() - Duell client token is not set');
-          $response['message'] = 'Duell client token is not set';
+
+          $text_error = $this->_duellLang['duell_client_token_not_set'];
+
+          $this->log('callDuellStockSync() - ' . $text_error);
+          $response['message'] = $text_error;
+
+          $error_message = 'callDuellStockSync() - ' . $text_error;
+
+          if ($type != 'manual') {
+            //$this->duellMailAlert($text_error, 422);
+          }
+
+
           return $response;
         }
 
         if (!isset($this->settings['duell_integration_department_token']) || strlen($this->settings['duell_integration_department_token']) <= 0) {
-          $this->log('callDuellStockSync() - Duell department token is not set');
-          $response['message'] = 'Duell department token is not set';
+
+          $text_error = $this->_duellLang['duell_department_token_not_set'];
+
+          $this->log('callDuellStockSync() - ' . $text_error);
+          $response['message'] = $text_error;
+
+          $error_message = 'callDuellStockSync() - ' . $text_error;
+
+          if ($type != 'manual') {
+            //$this->duellMailAlert($text_error, 422);
+          }
+
+
           return $response;
         }
 
@@ -124,7 +165,7 @@ class Duell {
 
         $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'length' => $limit, 'start' => $start);
 
-        $wsdata = $this->call('all/product/stock', 'get', $apiData);
+        $wsdata = $this->call('all/product/stock', 'get', $apiData, 'json', $type);
 
         if ($wsdata['status'] === true) {
 
@@ -143,7 +184,7 @@ class Duell {
 
                 $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'length' => $limit, 'start' => $nextCounter);
 
-                $wsdata = $this->call('all/product/stock', 'get', $apiData);
+                $wsdata = $this->call('all/product/stock', 'get', $apiData, 'json', $type);
 
                 if ($wsdata['status'] === true) {
                   $totalNRecord = $wsdata['total_count'];
@@ -166,17 +207,30 @@ class Duell {
 
           return $response;
         } else {
-          $this->log('callDuellStockSync() - Error:: ' . $wsdata['message']);
-          $response['message'] = $wsdata['message'];
+          $text_error = $wsdata['message'];
+          $this->log('callDuellStockSync() - Error:: ' . $text_error);
+          $response['message'] = $text_error;
+          if ($type != 'manual') {
+            //$this->duellMailAlert($text_error, 422);
+          }
         }
       } else {
-        $this->log('callDuellStockSync() - Duell status is not active');
-        $response['message'] = 'Duell status is not active';
+        $text_error = $this->_duellLang['duell_status_is_not_active'];
+        $this->log('callDuellStockSync() - ' . $text_error);
+        $response['message'] = $text_error;
+        if ($type != 'manual') {
+          $this->duellMailAlert($text_error, 422);
+        }
         return $response;
       }
     } catch (Exception $e) {
 
-      $this->log('callDuellStockSync() - Catch exception throw:: ' . $e->getMessage());
+      $text_error = 'Catch exception throw:: ' . $e->getMessage();
+
+      $this->log('callDuellStockSync() - ');
+      if ($type != 'manual') {
+        $this->duellMailAlert($text_error, 422);
+      }
     }
     return $response;
   }
@@ -190,16 +244,22 @@ class Duell {
         if (isset($this->settings['duell_integration_status']) && $this->settings['duell_integration_status'] == 1) {
 
           if (!isset($this->settings['duell_integration_client_number']) || (int) $this->settings['duell_integration_client_number'] <= 0) {
-            $this->log('callDuellStockUpdate() - Duell client number is not set');
+            $text_error = $this->_duellLang['duell_client_number_not_set'];
+            $this->log('callDuellStockUpdate() - ' . $text_error);
+            $this->duellMailAlert($text_error, 422);
             return true;
           }
           if (!isset($this->settings['duell_integration_client_token']) || strlen($this->settings['duell_integration_client_token']) <= 0) {
-            $this->log('callDuellStockUpdate() - Duell client token is not set');
+            $text_error = $this->_duellLang['duell_client_token_not_set'];
+            $this->log('callDuellStockUpdate() - ' . $text_error);
+            $this->duellMailAlert($text_error, 422);
             return true;
           }
 
           if (!isset($this->settings['duell_integration_department_token']) || strlen($this->settings['duell_integration_department_token']) <= 0) {
-            $this->log('callDuellStockUpdate() - Duell department token is not set');
+            $text_error = $this->_duellLang['duell_department_token_not_set'];
+            $this->log('callDuellStockUpdate() - ' . $text_error);
+            $this->duellMailAlert($text_error, 422);
             return true;
           }
 
@@ -213,17 +273,24 @@ class Duell {
 
           $wsdata = $this->call('updates/products/stocks', 'post', $apiData);
 
+
+          $text_error = $wsdata['message'];
+
           if ($wsdata['status'] === true) {
-            $this->log('callDuellStockUpdate() - Success:: ' . $wsdata['message']);
+            $this->log('callDuellStockUpdate() - Success:: ' . $text_error);
           } else {
-            $this->log('callDuellStockUpdate() - Error:: ' . $wsdata['message']);
+            $this->log('callDuellStockUpdate() - Error:: ' . $text_error);
+            $this->duellMailAlert('callDuellStockUpdate() - Error:: ' . $text_error, 422);
           }
           return true;
         } else {
-          $this->log('callDuellStockUpdate() - Duell status is not active');
+          $text_error = $this->_duellLang['duell_status_is_not_active'];
+          $this->log('callDuellStockUpdate() - ' . $text_error);
         }
       } catch (Exception $e) {
-        $this->log('callDuellStockUpdate() - Catch exception throw:: ' . $e->getMessage());
+        $text_error = 'Catch exception throw:: ' . $e->getMessage();
+        $this->log('callDuellStockUpdate() - ' . $text_error);
+        $this->duellMailAlert($text_error, 422);
       }
     } else {
       $this->log('callDuellStockUpdate() - Order product data is empty');
@@ -232,7 +299,7 @@ class Duell {
     return true;
   }
 
-  public function loginApi($action, $method = 'POST', $data = array(), $content_type = 'json') {
+  public function loginApi($action, $method = 'POST', $data = array(), $content_type = 'json', $type = 'manual') {
     try {
 
       $method = strtoupper($method);
@@ -294,7 +361,11 @@ class Duell {
       $this->log('loginApi() - Result of : "' . $result . '"');
 
       if (!$result) {
-        $this->log('loginApi() - Curl Failed ' . curl_error($curl) . ' ' . curl_errno($curl));
+        $text_error = 'loginApi() - Curl Failed ' . curl_error($curl);
+        $this->log($text_error . ' ' . curl_errno($curl));
+        if ($type != 'manual') {
+          $this->duellMailAlert($text_error, curl_errno($curl));
+        }
       }
       curl_close($curl);
 
@@ -334,7 +405,13 @@ class Duell {
               $result_message = $res['message'];
             }
 
+            $text_error = 'loginApi() - Result Failed - ' . $result_message;
+
             $this->log('loginApi() - Result Failed ' . $result_code . ' ' . $result_message);
+
+            if ($type != 'manual') {
+              //$this->duellMailAlert($text_error, $result_code);
+            }
           }
         }
       }
@@ -343,19 +420,29 @@ class Duell {
       $res['status'] = FALSE;
       $res['token'] = '';
       $res['message'] = $e->getMessage();
-      $this->log('loginApi() - Error exception throw:: ' . $e->getMessage());
+
+      $text_error = 'loginApi() - Error exception throw:: ' . $e->getMessage();
+
+      $this->log($text_error);
+      if ($type != 'manual') {
+        $this->duellMailAlert($text_error, 422);
+      }
     } catch (Exception $e) {
       $res['code'] = 100010;
       $res['status'] = FALSE;
       $res['token'] = '';
       $res['message'] = $e->getMessage();
-      $this->log('loginApi() - Catch exception throw:: ' . $e->getMessage());
+      $text_error = 'loginApi() - Catch exception throw:: ' . $e->getMessage();
+      $this->log($text_error);
+      if ($type != 'manual') {
+        $this->duellMailAlert($text_error, 422);
+      }
     }
 
     return $res;
   }
 
-  public function call($action, $method = 'POST', $data = array(), $content_type = 'json') {
+  public function call($action, $method = 'POST', $data = array(), $content_type = 'json', $type = 'manual') {
 
     try {
 
@@ -378,7 +465,7 @@ class Duell {
         while ($loginAttempt <= $this->totalLoginAttempt) {
 
           $this->log('call(' . $action . ') - login Attempt: ' . $loginAttempt);
-          $tokenData = $this->loginApi($this->loginAction, 'POST', $requestedData, $content_type);
+          $tokenData = $this->loginApi($this->loginAction, 'POST', $requestedData, $content_type, $type);
 
           if ($tokenData['status'] == true) {
             //==save in session or cookie
@@ -395,8 +482,12 @@ class Duell {
       if ($token == '') {
         $res['code'] = 100010;
         $res['status'] = FALSE;
-        $res['message'] = 'Not able to login with given crediential. Please check your settings.';
-        $this->log('call() - Not able to login with given crediential. Please check your settings.');
+        $text_error = $this->_duellLang['login_credential_wrong'];
+        $res['message'] = $text_error;
+        $this->log('call() - ' . $text_error);
+        if ($type != 'manual') {
+          $this->duellMailAlert('call() - ' . $text_error, 100010);
+        }
         return $res;
       }
 
@@ -406,6 +497,7 @@ class Duell {
         $this->cnt++;
         } */
 
+      $headers = array();
       $headers[] = 'Content-Type: application/json';
       $headers[] = 'Content-Type: application/x-www-form-urlencoded';
       $headers[] = 'Authorization: Bearer ' . $token;
@@ -456,7 +548,12 @@ class Duell {
       $this->log('call() - Result of : "' . $result . '"');
 
       if (!$result) {
-        $this->log('call() - Curl Failed ' . curl_error($curl) . ' ' . curl_errno($curl));
+
+        $text_error = 'call() - Curl Failed ' . curl_error($curl);
+        $this->log($text_error . ' ' . curl_errno($curl));
+        if ($type != 'manual') {
+          $this->duellMailAlert($text_error, curl_errno($curl));
+        }
       }
       curl_close($curl);
 
@@ -498,7 +595,11 @@ class Duell {
             if ((int) $result_code == 401 || (int) $result_code == 403) {
               //==relogin
               unset($_COOKIE[$this->keyName]);
-              return $this->call($action, $method, $requestedData, $content_type);
+              return $this->call($action, $method, $requestedData, $content_type, $type);
+            } else {
+              if ($type != 'manual') {
+                $this->duellMailAlert('call(' . $action . ') - ' . $result_message, $result_code);
+              }
             }
           }
         }
@@ -508,11 +609,17 @@ class Duell {
       $res['status'] = FALSE;
       $res['message'] = $e->getMessage();
       $this->log('call() - Error exception throw:: ' . $e->getMessage());
+      if ($type != 'manual') {
+        $this->duellMailAlert('call(' . $action . ') - Error exception throw:: ' . $e->getMessage(), 100010);
+      }
     } catch (Exception $e) {
       $res['code'] = 100010;
       $res['status'] = FALSE;
       $res['message'] = $e->getMessage();
       $this->log('call() - Catch exception throw:: ' . $e->getMessage());
+      if ($type != 'manual') {
+        $this->duellMailAlert('call(' . $action . ') - Catch exception throw::  ' . $e->getMessage(), 100010);
+      }
     }
 
     return $res;
@@ -579,6 +686,41 @@ class Duell {
       }
       if ($write == true) {
         $this->logger->write($data);
+      }
+    }
+  }
+
+  public function duellMailAlert($error_message = '', $error_code = '') {
+
+
+
+    $subject = sprintf($this->_duellLang['mail_subject'], html_entity_decode($this->config->get('config_name'), ENT_QUOTES, 'UTF-8'), $error_code);
+    $text = sprintf($this->_duellLang['mail_body'], $error_code, $error_message);
+
+
+    $mail = new \Mail();
+    $mail->protocol = $this->config->get('config_mail_protocol');
+    $mail->parameter = $this->config->get('config_mail_parameter');
+    $mail->smtp_hostname = $this->config->get('config_mail_smtp_hostname');
+    $mail->smtp_username = $this->config->get('config_mail_smtp_username');
+    $mail->smtp_password = html_entity_decode($this->config->get('config_mail_smtp_password'), ENT_QUOTES, 'UTF-8');
+    $mail->smtp_port = $this->config->get('config_mail_smtp_port');
+    $mail->smtp_timeout = $this->config->get('config_mail_smtp_timeout');
+    $mail->setTo($this->config->get('config_email'));
+    $mail->setFrom($this->config->get('config_email'));
+    $mail->setSender($this->config->get('config_email'));
+    $mail->setSubject(html_entity_decode($subject, ENT_QUOTES, 'UTF-8'));
+    $mail->setText(html_entity_decode($text, ENT_QUOTES, 'UTF-8'));
+    $mail->send();
+
+
+    // Send to additional alert emails
+    $emails = explode(',', $this->config->get('config_alert_emails'));
+
+    foreach ($emails as $email) {
+      if ($email && preg_match('/^[^\@]+@.*\.[a-z]{2,6}$/i', $email)) {
+        $mail->setTo($email);
+        $mail->send();
       }
     }
   }
