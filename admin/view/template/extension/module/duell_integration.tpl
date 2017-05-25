@@ -1,3 +1,4 @@
+<div id="blocker" style="display: none;"><div><?php echo $text_duell_integration_processing; ?>...</div></div>
  <?php echo $header; ?>
   <?php echo $column_left; ?>
 <div id="content">
@@ -148,9 +149,46 @@
     border: 1px solid #e4e4e4;
     border-radius: 3px;
   }
+  #blocker
+  {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: .9;
+    background-color: #000;
+    z-index: 1000;
+    overflow: auto;
+
+  }
+  #blocker div
+  {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5em;
+    height: 2em;
+    margin: -1em 0 0 -2.5em;
+    color: #fff;
+    font-weight: bold;
+    font-size: 24px;
+  }
 </style>
-  <script type="text/javascript"><!--
+    <script type="text/javascript"><!--
+   function blockUI(        )
+  {
+    $("#blocker").css('display', "");
+  }
+
+  function unblockUI(        )
+  {
+    $("#blocker").css('display', "none");
+  }
+  var inProcess = false;
   $('#button-syncmanually').on('click', function () {
+    if (inProcess == false) {
+      inProcess = true;
       $.ajax({
         url: 'index.php?route=extension/module/duell_integration/manualsync&token=<?php echo $token; ?>',
         type: 'post',
@@ -158,9 +196,12 @@
         cache: false,
         beforeSend: function () {
           $('#button-syncmanually').button('loading');
+          blockUI();
         },
         complete: function () {
           $('#button-syncmanually').button('reset');
+          unblockUI();
+          inProcess = false;
         },
         success: function (json) {
           console.log(json);
@@ -174,7 +215,7 @@
           alert(thrownError + "\r\n" + xhr.statusText + "\r\n" + xhr.responseText);
         }
       });
-
-    });
-    //--></script>
+    }
+  });
+  //--></script>
 <?php echo $footer; ?>
