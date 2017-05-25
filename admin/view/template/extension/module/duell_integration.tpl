@@ -70,6 +70,20 @@
 
 
 
+          <div class="form-group">
+            <label class="col-sm-2 control-label" for="input-log-status"><?php echo $text_duell_integration_log_status; ?></label>
+            <div class="col-sm-10">
+              <select name="duell_integration_log_status" id="input-log-status" class="form-control">
+                <?php if ($duell_integration_log_status==1 || $duell_integration_log_status=='') { ?>
+                <option value="1" selected="selected"><?php echo $text_enabled; ?></option>
+                <option value="0"><?php echo $text_disabled; ?></option>
+                <?php } else { ?>
+                <option value="1"><?php echo $text_enabled; ?></option>
+                <option value="0" selected="selected"><?php echo $text_disabled; ?></option>
+                <?php } ?>
+              </select>
+            </div>
+          </div>
 
 
           <div class="form-group">
@@ -91,7 +105,7 @@
           <div class="form-group">
             <label class="col-sm-2 control-label" for="">&nbsp;</label>
             <div class="col-sm-10">
-              <button type="button" id="button-syncmanually" data-toggle="tooltip" title="<?php echo $text_duell_integration_manual_sync; ?>" class="btn btn-primary"><i class="fa fa-refresh"></i></button>&nbsp;<?php echo $text_duell_integration_manual_sync; ?>
+              <button data-loading-text="<i class='fa fa-spinner fa-spin '></i> <?php echo $text_duell_integration_processing; ?>" type="button" id="button-syncmanually" data-toggle="tooltip" title="<?php echo $text_duell_integration_manual_sync; ?>" class="btn btn-primary"><i class="fa fa-refresh"></i></button>&nbsp;<?php echo $text_duell_integration_manual_sync; ?>
             </div>
           </div>
 

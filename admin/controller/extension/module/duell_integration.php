@@ -44,10 +44,13 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
     $data['button_save'] = $this->language->get('button_save');
     $data['button_cancel'] = $this->language->get('button_cancel');
 
+    $data['text_duell_integration_processing'] = $this->language->get('text_duell_integration_processing');
+
 
     $data['text_duell_integration_client_number'] = $this->language->get('text_duell_integration_client_number');
     $data['text_duell_integration_client_token'] = $this->language->get('text_duell_integration_client_token');
     $data['text_duell_integration_department_token'] = $this->language->get('text_duell_integration_department_token');
+    $data['text_duell_integration_log_status'] = $this->language->get('text_duell_integration_log_status');
 
 
     $data['help_text_duell_integration_client_number'] = $this->language->get('help_text_duell_integration_client_number');
@@ -131,7 +134,11 @@ class ControllerExtensionModuleDuellIntegration extends Controller {
       $data['duell_integration_department_token'] = $this->config->get('duell_integration_department_token');
     }
 
-
+    if (isset($this->request->post['duell_integration_log_status'])) {
+      $data['duell_integration_log_status'] = $this->request->post['duell_integration_log_status'];
+    } else {
+      $data['duell_integration_log_status'] = $this->config->get('duell_integration_log_status');
+    }
 
 
 

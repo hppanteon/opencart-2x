@@ -20,14 +20,19 @@ class Duell {
     $this->registry = $registry;
     $this->lasterror = '';
     $this->lastmsg = '';
+
+
+    $this->settings = $this->getSetting($this->keyName);
+
     $this->logging = 1;
-
-
+    if (isset($this->settings['duell_integration_log_status']) && $this->settings['duell_integration_log_status'] == 0) {
+      $this->logging = 0;
+    }
 
     if ($this->logging == 1) {
       $this->setLogger();
     }
-    $this->settings = $this->getSetting($this->keyName);
+
 
     require_once 'duell_mail_lang.php';
 
@@ -56,7 +61,7 @@ class Duell {
     $qry = $this->db->query("SELECT `product_id`,`quantity`,`model`, `status` FROM `" . DB_PREFIX . "product` WHERE `model` = '" . $product_model . "' LIMIT 1");
 
     if ($qry->num_rows > 0) {
-      $this->log('Returning ' . $product_model . ' - getDuellItemByModel()');
+      //$this->log('Returning ' . $product_model . ' - getDuellItemByModel()');
       return $qry->row;
     } else {
       $this->log('No product model found - getDuellItemByModel() ' . $product_model);
@@ -75,7 +80,7 @@ class Duell {
       if (!empty($allData)) {
         foreach ($allData as $val) {
 
-          $this->log('processStockUpdation() - API data: ' . json_encode($val));
+          //$this->log('processStockUpdation() - API data: ' . json_encode($val));
 
           $productNumber = isset($val['productNumber']) ? $val['productNumber'] : '';
           $stock = isset($val['stock']) ? $val['stock'] : 0;
@@ -266,21 +271,33 @@ class Duell {
           $product_data = array();
 
           foreach ($orderProductData as $val) {
-            $product_data[] = array('product_number' => $val['model'], 'quantity' => $val['quantity']);
+
+            $productId = $val['product_id'];
+
+            $qry = $this->db->query("SELECT `subtract` FROM `" . DB_PREFIX . "product` WHERE `product_id` = '" . $productId . "' LIMIT 1");
+
+            if ($qry->num_rows > 0) {
+
+              $productRow = $qry->row;
+              if ($productRow['subtract'] == 1) {
+                $product_data[] = array('product_number' => $val['model'], 'quantity' => $val['quantity']);
+              }
+            }
           }
+          if (!empty($product_data)) {
+            $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'product_data' => $product_data);
 
-          $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'product_data' => $product_data);
-
-          $wsdata = $this->call('updates/products/stocks', 'post', $apiData);
+            $wsdata = $this->call('updates/products/stocks', 'post', $apiData);
 
 
-          $text_error = $wsdata['message'];
+            $text_error = $wsdata['message'];
 
-          if ($wsdata['status'] === true) {
-            $this->log('callDuellStockUpdate() - Success:: ' . $text_error);
-          } else {
-            $this->log('callDuellStockUpdate() - Error:: ' . $text_error);
-            $this->duellMailAlert('callDuellStockUpdate() - Error:: ' . $text_error, 422);
+            if ($wsdata['status'] === true) {
+              //$this->log('callDuellStockUpdate() - Success:: ' . $text_error);
+            } else {
+              $this->log('callDuellStockUpdate() - Error:: ' . $text_error);
+              $this->duellMailAlert('callDuellStockUpdate() - Error:: ' . $text_error, 422);
+            }
           }
           return true;
         } else {
@@ -293,7 +310,7 @@ class Duell {
         $this->duellMailAlert($text_error, 422);
       }
     } else {
-      $this->log('callDuellStockUpdate() - Order product data is empty');
+      //$this->log('callDuellStockUpdate() - Order product data is empty');
     }
 
     return true;
@@ -358,7 +375,7 @@ class Duell {
 
       $result = curl_exec($curl);
 
-      $this->log('loginApi() - Result of : "' . $result . '"');
+      //$this->log('loginApi() - Result of : "' . $result . '"');
 
       if (!$result) {
         $text_error = 'loginApi() - Curl Failed ' . curl_error($curl);
@@ -464,7 +481,7 @@ class Duell {
         $loginAttempt = 1;
         while ($loginAttempt <= $this->totalLoginAttempt) {
 
-          $this->log('call(' . $action . ') - login Attempt: ' . $loginAttempt);
+          //$this->log('call(' . $action . ') - login Attempt: ' . $loginAttempt);
           $tokenData = $this->loginApi($this->loginAction, 'POST', $requestedData, $content_type, $type);
 
           if ($tokenData['status'] == true) {
@@ -669,13 +686,13 @@ class Duell {
   }
 
   private function setLogger() {
-    if (file_exists(DIR_LOGS . 'duell.log')) {
-      if (filesize(DIR_LOGS . 'duell.log') > ($this->max_log_size * 1000000)) {
-        rename(DIR_LOGS . 'duell.log', DIR_LOGS . '_duell_' . date('Y-m-d_H-i-s') . '.log');
+    if (file_exists(DIR_LOGS . 'error.log')) {
+      if (filesize(DIR_LOGS . 'error.log') > ($this->max_log_size * 1000000)) {
+        rename(DIR_LOGS . 'error.log', DIR_LOGS . '_error_' . date('Y-m-d_H-i-s') . '.log');
       }
     }
 
-    $this->logger = new \Log('duell.log');
+    $this->logger = new \Log('error.log');
   }
 
   public function log($data, $write = true) {

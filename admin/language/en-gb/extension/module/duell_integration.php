@@ -13,6 +13,9 @@ $_['entry_title'] = 'Duell Integration';
 $_['entry_text'] = 'Some Text';
 $_['entry_status'] = 'Status';
 
+$_['text_duell_integration_processing'] = 'processing';
+
+$_['text_duell_integration_log_status'] = 'Log Enable';
 
 $_['text_duell_integration_client_number'] = 'Client Number';
 $_['help_text_duell_integration_client_number'] = 'Enter client number which you used for login';
