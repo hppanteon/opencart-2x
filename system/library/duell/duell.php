@@ -4,7 +4,7 @@ namespace duell;
 
 class Duell {
 
-    private $url = 'http://duell.kasseservice.no/api/v1/';
+    private $url = 'https://duell.kasseservice.no/api/v1/';
     private $loginAction = 'getaccesstokens';
     private $registry;
     private $logger;
