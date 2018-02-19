@@ -83,7 +83,7 @@ class Duell {
                     //$this->log('processStockUpdation() - API data: ' . json_encode($val));
 
                     $productNumber = isset($val['product_number']) ? $val['product_number'] : '';
-                    $stock = isset($val['stock']) ? $val['stock'] : 0;
+                    $stock = isset($val['department'][0]['stock']) ? $val['department'][0]['stock'] : 0;
 
                     if ($productNumber != '') {
                         $getProductData = $this->getDuellItemByModel($productNumber);
