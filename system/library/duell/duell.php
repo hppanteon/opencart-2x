@@ -287,7 +287,7 @@ class Duell {
                     if (!empty($product_data)) {
                         $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'product_data' => $product_data);
 
-                        $wsdata = $this->call('updates/products/stocks', 'post', $apiData);
+                        $wsdata = $this->call('product/adjust-stock', 'post', $apiData);
 
 
                         $text_error = $wsdata['message'];
