@@ -168,7 +168,7 @@ class Duell {
                 $start = 0;
                 $limit = $this->limit;
 
-                $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department_token' => $this->settings['duell_integration_department_token'], 'length' => $limit, 'start' => $start);
+                $apiData = array('client_number' => (int) $this->settings['duell_integration_client_number'], 'client_token' => $this->settings['duell_integration_client_token'], 'department' => $this->settings['duell_integration_department_token'], 'length' => $limit, 'start' => $start);
 
                 $wsdata = $this->call('all/product/stock', 'get', $apiData, 'json', $type);
 
