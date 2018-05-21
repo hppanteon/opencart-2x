@@ -1,14 +1,14 @@
 Duell opencart-2x module
 =====================
 
-The purpose of this module is to manage stocks at both opencard 2.x webshop and duell. 
+The purpose of this module is to manage & sync stocks at both opencard 2.x webshop and Duell. 
 
 Prerequisites
 -------------
 
 This module requires opencart 2.x.
 
-If you want to use this module with opencart 1.x version, please use [1.x](https://github.com/Kasseservice/opencart-1x).
+If you want to use this module with opencart 1.x version, please use [1.x] (https://github.com/Kasseservice/opencart-1x).
 
 
 Installation
